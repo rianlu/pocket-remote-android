@@ -1,6 +1,6 @@
 # PocketTV Remote（Android 手机端）规格
 
-本仓库只实现**手机遥控客户端**。协议以 [`PROTOCOL.md`](PROTOCOL.md) 为准（须与 helper 仓库同名文件一致）。背景见 [`DESIGN.md`](DESIGN.md)。
+本仓库只实现**手机遥控客户端**。协议以 [`PROTOCOL.md`](PROTOCOL.md) 为准（须与 helper 仓库同名文件一致）。背景见 [`ARCHITECTURE.md`](ARCHITECTURE.md)。
 
 - 桌面名：口袋遥控
 - applicationId：`com.pockettv.phone`
