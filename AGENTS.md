@@ -42,7 +42,7 @@ app/src/main/java/com/pockettv/phone/
 
 ## 技术
 
-- Kotlin + AndroidX + Jetpack Compose；minSdk 21；targetSdk 35
+- Kotlin + AndroidX + Jetpack Compose；minSdk **26**；targetSdk 35
 - 网络：OkHttp 4；协程
 - 中文 UI
 

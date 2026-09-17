@@ -4,7 +4,7 @@
 
 - 桌面名：口袋遥控
 - applicationId：`com.pockettv.phone`
-- minSdk 21，compileSdk 35，targetSdk 35
+- minSdk **26**（Android 8.0），compileSdk 35，targetSdk 35
 - UI：Jetpack Compose，中文
 - 网络：OkHttp 4 + WebSocket；发现用 `NsdManager`，失败则 UDP，再失败手填 IP
 
