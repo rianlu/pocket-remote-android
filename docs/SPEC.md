@@ -50,4 +50,4 @@ Token 存 EncryptedSharedPreferences（或等价加密存储）。
 6. 上传 APK
 7. 应用列表 / 打开 / 卸载
 
-主测试机：API 21+ 手机 + Android 4.2–4.4 盒子 + 一台 API 21+ 盒子。
+主测试机：Android 8+ 手机 + Android 4.2–4.4 盒子 + 一台较新盒子。
