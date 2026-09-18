@@ -4,21 +4,21 @@
 
 | 文件 | 用途 |
 |---|---|
-| [`docs/PROTOCOL.md`](docs/PROTOCOL.md) | 协议权威文本，须与 `pockettv-helper-android` 的同名文件一致 |
+| [`docs/PROTOCOL.md`](docs/PROTOCOL.md) | 协议权威文本，须与 `pocket-remote-helper-android` 的同名文件一致 |
 | [`docs/SPEC.md`](docs/SPEC.md) | 本仓库（手机端）怎么实现 |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | 形态、范围、技术栈，不是 UI 规范 |
 
 ## 本仓库
 
-**pockettv-remote-android**：安卓手机遥控（口袋遥控）。电视在独立仓库 `pockettv-helper-android`。不要在本仓库写电视端或鸿蒙。
+**pocket-remote-android**：安卓手机遥控（口袋遥控）。电视在独立仓库 `pocket-remote-helper-android`。不要在本仓库写电视端或鸿蒙。
 
 ## 目录结构（禁止把业务类平铺在根包）
 
 源码尚未落地时按此创建，落地后必须维持：
 
 ```
-app/src/main/java/com/pockettv/phone/
-  PocketTvApp.kt            Application
+app/src/main/java/com/pocketremote/
+  PocketRemoteApp.kt            Application
   MainActivity.kt           入口
   protocol/                 与 PROTOCOL.md 一致的常量、JSON 编解码
   net/                      WebSocket 客户端、NSD/UDP 发现、HTTP 上传
@@ -26,7 +26,7 @@ app/src/main/java/com/pockettv/phone/
   ui/                       Compose 页面（设备列表、PIN、遥控板、键盘、文件、应用）
 ```
 
-新类必须进对应子包。不要在 `com.pockettv.phone` 根包堆网络或协议实现。
+新类必须进对应子包。不要在 `com.pocketremote` 根包堆网络或协议实现。
 
 ## 注释
 

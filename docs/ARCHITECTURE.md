@@ -1,8 +1,8 @@
-# PocketTV 架构说明
+# Pocket Remote 架构说明
 
 这是系统怎么拆、做什么/不做什么，**不是** Material 或 UI 视觉规范。
 
-开源后只从 GitHub 拉取本仓库与 `pockettv-helper-android`。**本文件随仓库走**，不依赖任何本地工作区文档。
+开源后只从 GitHub 拉取本仓库与 [pocket-remote-helper-android](https://github.com/rianlu/pocket-remote-helper-android)。**本文件随仓库走**，不依赖任何本地工作区文档。
 
 协议字段以 [`PROTOCOL.md`](PROTOCOL.md) 为准。本端怎么做见 [`SPEC.md`](SPEC.md)。
 
@@ -14,18 +14,20 @@
 手机 App  ── 局域网 ──►  电视助手  ──►  本机按键 / 写文本 / 收文件 / 装包
 ```
 
-手机不能直接控电视。ADB 不是遥控通道，只可作为用户已开调试时的可选安装手段（第一期不做）。
+手机不能直接控电视。ADB 不是遥控通道，只可作为用户已开调试时的可选安装手段（第一期不做）。按键由电视助手注入；助手侧覆盖见 helper 仓库 `docs/ARCHITECTURE.md`（系统插件 / `input` / 本机 adbd，不是无障碍）。
 
 | 仓库 | 角色 | minSdk |
 |---|---|---|
-| pockettv-remote-android | 手机客户端 | 26 |
-| pockettv-helper-android | 电视助手 | 16 |
+| pocket-remote-android | 手机客户端 | 26 |
+| pocket-remote-helper-android | 电视助手 | 16 |
 
 发现：NSD → 失败 UDP → 再失败手填 IP。  
+连接：手机 `PhoneViewModel` 持有唯一 `ConnectionManager`（一份 WebSocket）。已连接四 Tab 共用该会话，切页不重连、不销毁页面。  
+遥控：按键（含设置/信号源/数字）与鼠标相对指针（需系统插件）。不做触控滑动切焦点。  
 文本：用户点手机「键盘」发送，不自动弹、不做输入法、第一期无障碍。  
-文件：只到 `/sdcard/PocketTV/inbox|apk`，不是完整文件管理器。
+文件：只到 `/sdcard/PocketRemote/inbox|apk`，不是完整文件管理器。
 
-4.1–4.4 中文 `input text` 常失败，提示即可。音量走 `AudioManager`。
+文本由电视端剪贴板粘贴到焦点，不走 `input text`。音量走 `AudioManager`。设置由助手拉起系统设置页。
 
 ---
 
@@ -51,4 +53,4 @@
 
 ## 鸿蒙手机（以后）
 
-纯血鸿蒙手机可以当客户端控**安卓电视助手**，协议不变，UI 用 ArkTS 另开 `pockettv-remote-harmony`。第一期不做。
+纯血鸿蒙手机可以当客户端控**安卓电视助手**，协议不变，UI 用 ArkTS 另开 `pocket-remote-harmony`。第一期不做。

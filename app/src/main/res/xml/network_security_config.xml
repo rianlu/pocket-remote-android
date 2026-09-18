@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- 局域网 ws:// 明文；电视助手不提供 TLS。 -->
+    <!--
+      连接目标是 IP（ws://192.168.x.x），NSC 的 domain 配不了网段。
+      系统层只能整表允许明文；代码里 LanHosts 拒绝公网地址。
+    -->
     <base-config cleartextTrafficPermitted="true" />
 </network-security-config>

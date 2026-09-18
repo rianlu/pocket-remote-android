@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "pockettv-remote-android"
+rootProject.name = "pocket-remote-android"
 include(":app")
