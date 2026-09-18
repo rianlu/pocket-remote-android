@@ -28,6 +28,11 @@ app/src/main/java/com/pocketremote/
 
 新类必须进对应子包。不要在 `com.pocketremote` 根包堆网络或协议实现。
 
+## 提交说明
+
+- 语言：**中文**。标题一行说清做了什么；必要时正文补原因或范围。
+- 不要用英文写 commit message。
+
 ## 注释
 
 - 语言：**中文**。
