@@ -121,6 +121,11 @@ class ConnectionManager(
         socket?.send(json)
     }
 
+    fun installApk(name: String, path: String = "") {
+        val (_, json) = Messages.apkInstall(name, path)
+        socket?.send(json)
+    }
+
     fun requestInfo() {
         val (_, json) = Messages.info()
         socket?.send(json)

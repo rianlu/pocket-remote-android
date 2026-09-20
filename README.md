@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android-3DDC84.svg?logo=android&logoColor=white)](https://www.android.com)
 [![API](https://img.shields.io/badge/API-26%2B-brightgreen.svg)](https://developer.android.com/guide/topics/manifest/uses-sdk-element#ApiLevels)
-[![Version](https://img.shields.io/badge/version-0.2.5-blue.svg)](https://github.com/rianlu/pocket-remote-android)
+[![Version](https://img.shields.io/badge/version-0.2.9-blue.svg)](https://github.com/rianlu/pocket-remote-android)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0-7F52FF.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 
 在同一 Wi-Fi 下控制已安装 [口袋遥控助手](https://github.com/rianlu/pocket-remote-helper-android) 的安卓电视 / 盒子。手机只发协议，不在本机注入按键。
@@ -15,7 +15,7 @@
 | 桌面名 | 口袋遥控 |
 | GitHub | https://github.com/rianlu/pocket-remote-android |
 | applicationId | `com.pocketremote` |
-| 版本 | 0.2.5 |
+| 版本 | 0.2.9 |
 | minSdk / targetSdk | 26（Android 8.0） / 35 |
 | UI | Jetpack Compose · Material 3 |
 | 配对仓库 | [pocket-remote-helper-android](https://github.com/rianlu/pocket-remote-helper-android) |

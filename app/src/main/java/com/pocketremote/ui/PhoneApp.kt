@@ -1,7 +1,5 @@
 package com.pocketremote.ui
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -74,9 +72,6 @@ fun PhoneApp(viewModel: PhoneViewModel) {
 
 @Composable
 private fun ConnectedSession(state: UiState, viewModel: PhoneViewModel) {
-    val pickApk = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) viewModel.upload(uri, asApk = true)
-    }
     val focusManager = LocalFocusManager.current
     LaunchedEffect(state.route) {
         if (state.route != Route.Keyboard) focusManager.clearFocus()
@@ -106,10 +101,7 @@ private fun ConnectedSession(state: UiState, viewModel: PhoneViewModel) {
                 Route.Remote -> TextButton(onClick = { viewModel.disconnectToList() }) {
                     Text("断开", color = MaterialTheme.colorScheme.error)
                 }
-                Route.Apps -> {
-                    TextButton(onClick = { pickApk.launch("*/*") }) { Text("安装") }
-                    TextButton(onClick = { viewModel.loadApps() }) { Text("刷新") }
-                }
+                Route.Apps -> TextButton(onClick = { viewModel.loadApps() }) { Text("刷新") }
                 Route.Info -> TextButton(onClick = { viewModel.refreshInfo() }) { Text("刷新") }
                 else -> Unit
             }

@@ -23,6 +23,7 @@ import com.pocketremote.net.LanHosts
 import com.pocketremote.net.TransferClient
 import com.pocketremote.protocol.Constants
 import com.pocketremote.protocol.TvApp
+import com.pocketremote.protocol.TvFile
 import com.pocketremote.protocol.TvDevice
 import com.pocketremote.protocol.TvInfo
 import com.pocketremote.session.TokenStore
@@ -178,6 +179,25 @@ class PhoneViewModel(app: Application) : AndroidViewModel(app), ConnectionManage
 
     fun loadApps() {
         connection.requestApps()
+        loadTvApks()
+    }
+
+    fun loadTvApks() {
+        val host = connection.host
+        val token = connection.token
+        if (host.isEmpty() || token.isEmpty()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = transfer.listFiles(host, connection.port, token)
+            val files = result.getOrNull().orEmpty()
+                .filter { it.name.endsWith(".apk", ignoreCase = true) }
+                .sortedByDescending { it.mtime }
+            _ui.update { it.copy(tvApks = files) }
+        }
+    }
+
+    fun installTvApk(file: TvFile) {
+        connection.installApk(file.name, file.path)
+        _ui.update { it.copy(message = "已在电视上打开安装界面") }
     }
 
     fun openApp(pkg: String) {
@@ -195,12 +215,21 @@ class PhoneViewModel(app: Application) : AndroidViewModel(app), ConnectionManage
     val iconMap: SnapshotStateMap<String, ImageBitmap> = mutableStateMapOf()
 
     fun ensureIcon(pkg: String) {
-        if (iconMap.containsKey(pkg) || !inflightIcons.add(pkg)) return
+        fetchIcon(pkg, "/apps/icon?pkg=${java.net.URLEncoder.encode(pkg, "UTF-8")}")
+    }
+
+    fun ensureApkIcon(path: String) {
+        if (path.isBlank()) return
+        fetchIcon("apk:$path", "/transfer/icon?path=${java.net.URLEncoder.encode(path, "UTF-8")}")
+    }
+
+    private fun fetchIcon(key: String, pathAndQuery: String) {
+        if (iconMap.containsKey(key) || !inflightIcons.add(key)) return
         viewModelScope.launch(Dispatchers.IO) {
-            val bytes = iconPng(pkg)
+            val bytes = iconBytes(key, pathAndQuery)
             val bmp = if (bytes != null) BitmapFactory.decodeByteArray(bytes, 0, bytes.size) else null
             withContext(Dispatchers.Main) {
-                if (bmp != null) iconMap[pkg] = bmp.asImageBitmap()
+                if (bmp != null) iconMap[key] = bmp.asImageBitmap()
             }
         }
     }
@@ -211,17 +240,16 @@ class PhoneViewModel(app: Application) : AndroidViewModel(app), ConnectionManage
     }
 
     fun iconPng(pkg: String): ByteArray? {
-        iconCache[pkg]?.let { return it }
+        return iconBytes(pkg, "/apps/icon?pkg=${java.net.URLEncoder.encode(pkg, "UTF-8")}")
+    }
+
+    private fun iconBytes(cacheKey: String, pathAndQuery: String): ByteArray? {
+        iconCache[cacheKey]?.let { return it }
         val host = connection.host
         val token = connection.token
         if (host.isEmpty() || token.isEmpty()) return null
-        val bytes = transfer.getBytes(
-            host,
-            connection.port,
-            token,
-            "/apps/icon?pkg=${java.net.URLEncoder.encode(pkg, "UTF-8")}",
-        )
-        if (bytes != null) iconCache[pkg] = bytes
+        val bytes = transfer.getBytes(host, connection.port, token, pathAndQuery)
+        if (bytes != null) iconCache[cacheKey] = bytes
         return bytes
     }
 
@@ -275,13 +303,14 @@ class PhoneViewModel(app: Application) : AndroidViewModel(app), ConnectionManage
             }
             _ui.update {
                 it.copy(
-                    uploadProgress = if (result.isSuccess) 1f else -1f,
+                    uploadProgress = -1f,
                     message = result.fold(
                         onSuccess = { if (asApk) "已上传，请在电视上确认安装" else "上传完成，文件在电视 PocketRemote/inbox" },
                         onFailure = { e -> "上传失败: ${e.message}" },
                     ),
                 )
             }
+            if (result.isSuccess && asApk) loadTvApks()
         }
     }
 
@@ -289,7 +318,10 @@ class PhoneViewModel(app: Application) : AndroidViewModel(app), ConnectionManage
         val cur = _ui.value
         if (cur.route == route) return
         _ui.update { it.copy(route = route) }
-        if (route == Route.Apps && cur.apps.isEmpty()) loadApps()
+        if (route == Route.Apps) {
+            if (cur.apps.isEmpty()) loadApps()
+            if (cur.tvApks.isEmpty()) loadTvApks()
+        }
         if ((route == Route.Settings || route == Route.Info) && cur.tvInfo == null) {
             connection.requestInfo()
         }
@@ -307,7 +339,7 @@ class PhoneViewModel(app: Application) : AndroidViewModel(app), ConnectionManage
     fun disconnectToList() {
         connection.disconnect()
         _ui.update {
-            it.copy(route = Route.Devices, connecting = false, apps = emptyList(), tvInfo = null, message = "")
+            it.copy(route = Route.Devices, connecting = false, apps = emptyList(), tvApks = emptyList(), tvInfo = null, message = "")
         }
         scan()
     }
@@ -362,7 +394,7 @@ class PhoneViewModel(app: Application) : AndroidViewModel(app), ConnectionManage
             )
         }
         connection.requestInfo()
-        connection.requestApps()
+        loadApps()
     }
 
     override fun onInfo(info: TvInfo) {
@@ -403,7 +435,7 @@ class PhoneViewModel(app: Application) : AndroidViewModel(app), ConnectionManage
         // 遥控页掉线时回到列表
         val route = _ui.value.route
         if (route != Route.Devices && route != Route.Pin) {
-            _ui.update { it.copy(message = "连接已断开", route = Route.Devices, connecting = false) }
+            _ui.update { it.copy(message = "连接已断开", route = Route.Devices, connecting = false, tvApks = emptyList()) }
         }
     }
 
@@ -434,5 +466,6 @@ data class UiState(
     val tvInfo: TvInfo? = null,
     val message: String = "",
     val uploadProgress: Float = -1f,
+    val tvApks: List<TvFile> = emptyList(),
     val pinNonce: Int = 0,
 )

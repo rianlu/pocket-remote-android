@@ -55,6 +55,12 @@ object Messages {
         return envelope(Constants.TYPE_APP_UNINSTALL, JSONObject().put("pkg", pkg))
     }
 
+    fun apkInstall(name: String, path: String = ""): Pair<String, String> {
+        val p = JSONObject().put("name", name)
+        if (path.isNotBlank()) p.put("path", path)
+        return envelope(Constants.TYPE_APK_INSTALL, p)
+    }
+
     fun info(): Pair<String, String> = envelope(Constants.TYPE_INFO)
 
     fun clean(): Pair<String, String> = envelope(Constants.TYPE_CLEAN)
@@ -133,6 +139,14 @@ data class TvApp(
     val system: Boolean,
     val size: Long = 0,
     val extractable: Boolean = false,
+)
+
+data class TvFile(
+    val name: String,
+    val dir: String,
+    val size: Long = 0,
+    val mtime: Long = 0,
+    val path: String = "",
 )
 
 data class TvInfo(

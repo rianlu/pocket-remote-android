@@ -3,12 +3,13 @@ package com.pocketremote.net
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import com.pocketremote.protocol.TvFile
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import okio.BufferedSink
-import okio.source
+import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 /** HTTP 上传到电视 /transfer/upload。 */
@@ -60,6 +61,43 @@ class TransferClient {
             client.newCall(req).execute().use { resp ->
                 if (resp.isSuccessful) Result.success(Unit)
                 else Result.failure(IllegalStateException("HTTP ${resp.code}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    fun listFiles(host: String, port: Int, token: String): Result<List<TvFile>> {
+        if (!LanHosts.allowed(host)) return Result.failure(IllegalArgumentException("只允许局域网地址"))
+        return try {
+            val url = "http://$host:$port/transfer/list"
+            val req = Request.Builder()
+                .url(url)
+                .header("Authorization", "Bearer $token")
+                .get()
+                .build()
+            client.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) {
+                    return Result.failure(IllegalStateException("HTTP ${resp.code}"))
+                }
+                val body = resp.body?.string() ?: return Result.failure(IllegalStateException("empty"))
+                val arr = JSONObject(body).optJSONArray("files") ?: return Result.success(emptyList())
+                val out = ArrayList<TvFile>(arr.length())
+                for (i in 0 until arr.length()) {
+                    val o = arr.optJSONObject(i) ?: continue
+                    val name = o.optString("name")
+                    if (name.isBlank()) continue
+                    out.add(
+                        TvFile(
+                            name = name,
+                            dir = o.optString("dir"),
+                            size = o.optLong("size"),
+                            mtime = o.optLong("mtime"),
+                            path = o.optString("path"),
+                        ),
+                    )
+                }
+                Result.success(out)
             }
         } catch (e: Exception) {
             Result.failure(e)

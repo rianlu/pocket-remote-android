@@ -22,6 +22,7 @@ object Constants {
     const val TYPE_APPS_OK = "apps_ok"
     const val TYPE_APP_OPEN = "app_open"
     const val TYPE_APP_UNINSTALL = "app_uninstall"
+    const val TYPE_APK_INSTALL = "apk_install"
     const val TYPE_POINTER = "pointer"
     const val TYPE_INFO = "info"
     const val TYPE_INFO_OK = "info_ok"
