@@ -87,6 +87,8 @@ fun MouseTrackpad(
                     }
                     var total = Offset.Zero
                     var moved = false
+                    var hapticDistance = 0f
+                    val hapticThreshold = tapSlop * 2f
                     try {
                         while (true) {
                             val event = awaitPointerEvent()
@@ -103,11 +105,18 @@ fun MouseTrackpad(
                                 change.consume()
                                 total += d
                                 scope.launch { orb.snapTo(change.position) }
-                                if (total.getDistance() > tapSlop) {
+                                val dist = total.getDistance()
+                                if (dist > tapSlop) {
                                     moved = true
                                     val dx = (d.x * scale).toInt()
                                     val dy = (d.y * scale).toInt()
                                     if (dx != 0 || dy != 0) onMove(dx, dy)
+                                    
+                                    hapticDistance += d.getDistance()
+                                    if (hapticDistance > hapticThreshold) {
+                                        view.vibrate(HapticFeedbackConstants.CLOCK_TICK)
+                                        hapticDistance = 0f
+                                    }
                                 }
                             }
                         }

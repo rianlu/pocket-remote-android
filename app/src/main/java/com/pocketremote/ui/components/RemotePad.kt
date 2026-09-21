@@ -3,6 +3,8 @@ import com.pocketremote.ui.theme.vibrate
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.animateFloatAsState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -36,6 +38,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -224,6 +229,17 @@ private fun ClickPad(size: Dp, onKey: (Int) -> Unit) {
     val view = LocalView.current
     val padPx = with(LocalDensity.current) { size.toPx() }
     var held by remember { mutableStateOf(PadRegion.None) }
+    val currentOnKey by rememberUpdatedState(onKey)
+    LaunchedEffect(held) {
+        if (held != PadRegion.None && held != PadRegion.Ok) {
+            delay(400)
+            while (isActive) {
+                firePad(held, currentOnKey)
+                view.vibrate(HapticFeedbackConstants.CLOCK_TICK)
+                delay(100)
+            }
+        }
+    }
     val scheme = MaterialTheme.colorScheme
 
     Box(
