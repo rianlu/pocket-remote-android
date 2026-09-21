@@ -322,7 +322,7 @@ class PhoneViewModel(app: Application) : AndroidViewModel(app), ConnectionManage
             if (cur.apps.isEmpty()) loadApps()
             if (cur.tvApks.isEmpty()) loadTvApks()
         }
-        if ((route == Route.Settings || route == Route.Info) && cur.tvInfo == null) {
+        if (route == Route.Dashboard && cur.tvInfo == null) {
             connection.requestInfo()
         }
     }
@@ -449,7 +449,7 @@ class PhoneViewModel(app: Application) : AndroidViewModel(app), ConnectionManage
     }
 }
 
-enum class Route { Devices, Pin, Remote, Keyboard, Apps, Settings, Info }
+enum class Route { Devices, Pin, Remote, Apps, Dashboard }
 
 data class UiState(
     val route: Route = Route.Devices,

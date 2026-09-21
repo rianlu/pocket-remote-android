@@ -59,17 +59,12 @@ fun PocketRemoteTheme(
     palette: PaletteKey,
     content: @Composable () -> Unit,
 ) {
-    val systemDark = isSystemInDarkTheme()
-    val dark = when (appearance) {
-        AppearanceMode.System -> systemDark
-        AppearanceMode.Light -> false
-        AppearanceMode.Dark -> true
-    }
+    val useDarkTheme = true // 强制全局深色模式
     val context = LocalContext.current
     val colorScheme = if (palette == PaletteKey.Dynamic && Build.VERSION.SDK_INT >= 31) {
-        if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     } else {
-        seedScheme(if (palette == PaletteKey.Dynamic) PaletteKey.Blue else palette, dark)
+        seedScheme(if (palette == PaletteKey.Dynamic) PaletteKey.Blue else palette, useDarkTheme)
     }
     MaterialTheme(
         colorScheme = colorScheme,

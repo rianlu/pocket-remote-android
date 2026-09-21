@@ -1,11 +1,13 @@
 package com.pocketremote.ui.apps
 
+import android.view.HapticFeedbackConstants
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,25 +20,31 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.UploadFile
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -49,348 +57,318 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pocketremote.protocol.TvApp
-import com.pocketremote.protocol.TvFile
 import com.pocketremote.ui.PhoneViewModel
 import com.pocketremote.ui.UiState
-import com.pocketremote.ui.components.CapsuleButton
-import com.pocketremote.ui.components.CapsuleTone
-import com.pocketremote.ui.components.SettingsItem
-import java.util.Locale
 
-/** 已安装应用与电视上的安装包，分两个子页。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppsScreen(state: UiState, viewModel: PhoneViewModel) {
-    var pane by rememberSaveable { mutableStateOf(0) }
     var appQuery by rememberSaveable { mutableStateOf("") }
-    var apkQuery by rememberSaveable { mutableStateOf("") }
-    var appFilter by rememberSaveable { mutableStateOf("all") }
     var sheetPkg by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingUninstall by rememberSaveable { mutableStateOf<String?>(null) }
     var extractPkg by rememberSaveable { mutableStateOf<String?>(null) }
-    var pendingApk by rememberSaveable { mutableStateOf<String?>(null) }
+    var appFilter by rememberSaveable { mutableStateOf("all") }
+
     val pickApk = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) viewModel.upload(uri, asApk = true)
     }
-    val saveApk = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/vnd.android.package-archive"),
+
+    val extractApk = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/vnd.android.package-archive")
     ) { uri ->
-        val pkg = extractPkg
-        extractPkg = null
-        if (uri != null && pkg != null) viewModel.extractApk(pkg, uri)
+        if (uri != null && extractPkg != null) {
+            viewModel.extractApk(extractPkg!!, uri)
+            extractPkg = null
+        }
     }
+
     val filteredApps = state.apps.filter { app ->
-        val match = appQuery.isBlank() ||
+        val matchQuery = appQuery.isBlank() ||
             app.name.contains(appQuery, ignoreCase = true) ||
             app.pkg.contains(appQuery, ignoreCase = true)
-        val type = when (appFilter) {
+        val matchFilter = when (appFilter) {
             "user" -> !app.system
             "system" -> app.system
             else -> true
         }
-        match && type
+        matchQuery && matchFilter
     }
-    val filteredApks = state.tvApks.filter {
-        apkQuery.isBlank() || it.name.contains(apkQuery, ignoreCase = true) ||
-            it.dir.contains(apkQuery, ignoreCase = true)
-    }
-    val sheetApp = state.apps.find { it.pkg == sheetPkg }
-    val pendingApp = state.apps.find { it.pkg == pendingUninstall }
+
     Column(Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = pane, containerColor = MaterialTheme.colorScheme.surface) {
-            Tab(
-                selected = pane == 0,
-                onClick = { pane = 0 },
-                text = { Text("已安装") },
+        // Upload APK Banner
+        UploadBanner(
+            progress = state.uploadProgress,
+            onClick = { pickApk.launch("application/vnd.android.package-archive") }
+        )
+        Spacer(Modifier.height(14.dp))
+
+        // Search Bar
+        OutlinedTextField(
+            value = appQuery,
+            onValueChange = { appQuery = it },
+            placeholder = { Text("搜索已安装应用") },
+            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            shape = RoundedCornerShape(14.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             )
-            Tab(
-                selected = pane == 1,
-                onClick = {
-                    pane = 1
-                    viewModel.loadTvApks()
-                },
-                text = { Text("安装包") },
+        )
+
+        Spacer(Modifier.height(10.dp))
+
+        // Filter Row
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("all" to "全部", "user" to "用户", "system" to "系统").forEach { (key, label) ->
+                FilterChip(
+                    selected = appFilter == key,
+                    label = label,
+                    onClick = { appFilter = key }
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            Text(
+                "${filteredApps.size} 个",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.CenterVertically)
             )
         }
-        if (pane == 0) {
-            InstalledPane(
-                query = appQuery,
-                onQuery = { appQuery = it },
-                filter = appFilter,
-                onFilter = { appFilter = it },
-                count = if (state.apps.isEmpty()) "正在拉取…" else "${filteredApps.size} 个应用",
-                apps = filteredApps,
-                iconOf = { viewModel.iconMap[it] },
-                onVisible = { viewModel.ensureIcon(it) },
-                onApp = { sheetPkg = it },
-            )
-        } else {
-            PackagesPane(
-                query = apkQuery,
-                onQuery = { apkQuery = it },
-                uploading = state.uploadProgress >= 0f,
-                progress = state.uploadProgress,
-                count = "${filteredApks.size} 个文件",
-                files = filteredApks,
-                iconOf = { path -> viewModel.iconMap["apk:$path"] },
-                onVisible = { viewModel.ensureApkIcon(it) },
-                onPickPhone = { pickApk.launch("*/*") },
-                onFile = { pendingApk = apkKey(it) },
-            )
+
+        Spacer(Modifier.height(12.dp))
+
+        // App Grid
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 72.dp),
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            contentPadding = PaddingValues(bottom = 100.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            gridItems(filteredApps, key = { it.pkg }) { app ->
+                AppGridCell(
+                    app = app,
+                    icon = viewModel.iconMap[app.pkg],
+                    onVisible = { viewModel.ensureIcon(it) },
+                    onClick = { viewModel.openApp(app.pkg) },
+                    onLongClick = { sheetPkg = app.pkg }
+                )
+            }
         }
     }
+
+    // App Detail Sheet
+    val sheetApp = sheetPkg?.let { pkg -> state.apps.find { it.pkg == pkg } }
     if (sheetApp != null) {
         ModalBottomSheet(
             onDismissRequest = { sheetPkg = null },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ) {
             Column(
-                Modifier
+                modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .padding(horizontal = 24.dp)
                     .padding(bottom = 28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(sheetApp.name.ifBlank { sheetApp.pkg }, style = MaterialTheme.typography.headlineSmall)
-                if (sheetApp.size > 0) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(formatSize(sheetApp.size), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // App icon
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .shadow(8.dp, RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(20.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val icon = viewModel.iconMap[sheetApp.pkg]
+                    if (icon != null) {
+                        Image(icon, null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    } else {
+                        Icon(Icons.Outlined.Apps, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
-                val restriction = when {
-                    sheetApp.system -> "系统应用无法卸载或提取"
-                    !sheetApp.extractable -> "该应用含分体包，无法提取完整 APK"
-                    else -> null
-                }
-                if (restriction != null) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(restriction, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Spacer(Modifier.height(20.dp))
-                CapsuleButton(
-                    text = "打开",
-                    onClick = {
-                        viewModel.openApp(sheetApp.pkg)
-                        sheetPkg = null
-                    },
-                    modifier = Modifier.fillMaxWidth(),
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    sheetApp.name.ifBlank { sheetApp.pkg },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                if (sheetApp.extractable) {
-                    Spacer(Modifier.height(8.dp))
-                    CapsuleButton(
-                        text = "提取 APK",
+                Text(
+                    sheetApp.pkg,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    if (sheetApp.system) "系统应用" else "用户应用",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(24.dp))
+
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = { viewModel.openApp(sheetApp.pkg); sheetPkg = null },
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Icon(Icons.Outlined.PlayArrow, null)
+                        Spacer(Modifier.width(6.dp))
+                        Text("打开")
+                    }
+                    FilledTonalButton(
                         onClick = {
                             extractPkg = sheetApp.pkg
-                            val file = (if (sheetApp.name.isBlank() || sheetApp.name == sheetApp.pkg) sheetApp.pkg else sheetApp.name) + ".apk"
-                            saveApk.launch(file.replace('/', '_'))
                             sheetPkg = null
+                            extractApk.launch("${sheetApp.name}.apk")
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        tone = CapsuleTone.Neutral,
-                    )
+                        modifier = Modifier.weight(1f).height(52.dp)
+                    ) {
+                        Icon(Icons.Outlined.FileDownload, null)
+                        Spacer(Modifier.width(6.dp))
+                        Text("提取 APK")
+                    }
                 }
                 if (!sheetApp.system) {
-                    Spacer(Modifier.height(8.dp))
-                    CapsuleButton(
-                        text = "卸载",
-                        onClick = {
-                            pendingUninstall = sheetApp.pkg
-                            sheetPkg = null
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        tone = CapsuleTone.Destructive,
-                    )
+                    Spacer(Modifier.height(12.dp))
+                    TextButton(
+                        onClick = { pendingUninstall = sheetApp.pkg; sheetPkg = null },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Icon(Icons.Outlined.Delete, null)
+                        Spacer(Modifier.width(6.dp))
+                        Text("卸载此应用")
+                    }
                 }
             }
         }
     }
-    if (pendingApp != null) {
+
+    // Uninstall Confirm
+    if (pendingUninstall != null) {
         AlertDialog(
             onDismissRequest = { pendingUninstall = null },
-            title = { Text("卸载应用") },
-            text = { Text("在电视上卸载「${pendingApp.name}」？") },
+            title = { Text("确认卸载") },
+            text = { Text("将在电视上卸载此应用。此操作需在电视端二次确认。") },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.uninstallApp(pendingApp.pkg)
-                    pendingUninstall = null
-                }) { Text("卸载", color = MaterialTheme.colorScheme.error) }
+                TextButton(
+                    onClick = { viewModel.uninstallApp(pendingUninstall!!); pendingUninstall = null },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("卸载") }
             },
             dismissButton = {
                 TextButton(onClick = { pendingUninstall = null }) { Text("取消") }
             },
         )
     }
-    val pendingFile = pendingApk?.let { key -> state.tvApks.find { apkKey(it) == key } }
-    if (pendingFile != null) {
-        AlertDialog(
-            onDismissRequest = { pendingApk = null },
-            title = { Text("安装到电视") },
-            text = { Text("在电视上安装「${pendingFile.name}」？") },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.installTvApk(pendingFile)
-                    pendingApk = null
-                }) { Text("安装") }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingApk = null }) { Text("取消") }
-            },
-        )
-    }
 }
 
 @Composable
-private fun InstalledPane(
-    query: String,
-    onQuery: (String) -> Unit,
-    filter: String,
-    onFilter: (String) -> Unit,
-    count: String,
-    apps: List<TvApp>,
-    iconOf: (String) -> ImageBitmap?,
-    onVisible: (String) -> Unit,
-    onApp: (String) -> Unit,
-) {
-    Column(Modifier.fillMaxSize()) {
-        Spacer(Modifier.height(12.dp))
-        SearchField(query, onQuery, "搜索应用")
-        Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = filter == "all", onClick = { onFilter("all") }, label = { Text("全部") })
-            FilterChip(selected = filter == "user", onClick = { onFilter("user") }, label = { Text("用户") })
-            FilterChip(selected = filter == "system", onClick = { onFilter("system") }, label = { Text("系统") })
-        }
-        Text(
-            count,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-        )
-        if (apps.isEmpty()) {
-            EmptyHint("没有符合条件的应用", Modifier.weight(1f).fillMaxWidth())
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 80.dp),
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                contentPadding = PaddingValues(bottom = 16.dp, top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+private fun UploadBanner(progress: Float, onClick: () -> Unit) {
+    val uploading = progress >= 0f
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(6.dp, RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(18.dp))
+            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f), RoundedCornerShape(18.dp))
+            .clickable { onClick() }
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .shadow(4.dp, CircleShape)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape),
+                contentAlignment = Alignment.Center
             ) {
-                gridItems(apps, key = { it.pkg }) { app ->
-                    AppGridCell(
-                        app = app,
-                        icon = iconOf(app.pkg),
-                        onVisible = onVisible,
-                        onClick = { onApp(app.pkg) },
-                    )
-                }
+                Icon(
+                    Icons.Outlined.UploadFile,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    if (uploading) "正在推送 ${(progress * 100).toInt()}%"
+                    else "推送安装包 (APK)",
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    "从手机发送 APK 文件到电视安装",
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
-    }
-}
-
-@Composable
-private fun PackagesPane(
-    query: String,
-    onQuery: (String) -> Unit,
-    uploading: Boolean,
-    progress: Float,
-    count: String,
-    files: List<TvFile>,
-    iconOf: (String) -> ImageBitmap?,
-    onVisible: (String) -> Unit,
-    onPickPhone: () -> Unit,
-    onFile: (TvFile) -> Unit,
-) {
-    Column(Modifier.fillMaxSize()) {
-        Spacer(Modifier.height(12.dp))
-        CapsuleButton(
-            text = if (uploading) "正在推送 ${(progress * 100).toInt()}%" else "从手机安装",
-            onClick = onPickPhone,
-            enabled = !uploading,
-            modifier = Modifier.fillMaxWidth(),
-        )
         if (uploading) {
-            Spacer(Modifier.height(8.dp))
             LinearProgressIndicator(
                 progress = { progress.coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(3.dp).align(Alignment.BottomCenter),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primaryContainer,
             )
         }
-        Spacer(Modifier.height(12.dp))
-        SearchField(query, onQuery, "搜索安装包")
-        Text(
-            count,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-        )
-        if (files.isEmpty() && !uploading) {
-            EmptyHint(
-                "电视存储里没有发现 APK\n可从手机推送，或把安装包拷到下载目录",
-                Modifier.weight(1f).fillMaxWidth(),
+    }
+}
+
+@Composable
+private fun FilterChip(selected: Boolean, label: String, onClick: () -> Unit) {
+    val view = LocalView.current
+    Box(
+        modifier = Modifier
+            .height(32.dp)
+            .background(
+                if (selected) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.surfaceContainerLow,
+                RoundedCornerShape(16.dp)
             )
-        } else {
-            LazyColumn(Modifier.fillMaxWidth().weight(1f)) {
-                items(files, key = { apkKey(it) }) { file ->
-                    ApkFileRow(
-                        file = file,
-                        icon = iconOf(file.path),
-                        onVisible = onVisible,
-                        onClick = { onFile(file) },
-                    )
-                }
+            .border(
+                1.dp,
+                if (selected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                RoundedCornerShape(16.dp)
+            )
+            .clickable {
+                view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                onClick()
             }
-        }
-    }
-}
-
-@Composable
-private fun SearchField(value: String, onValue: (String) -> Unit, label: String) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValue,
-        label = { Text(label) },
-        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-    )
-}
-
-@Composable
-private fun EmptyHint(text: String, modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
         Text(
-            text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                    else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
-}
-
-@Composable
-private fun ApkFileRow(
-    file: TvFile,
-    icon: ImageBitmap?,
-    onVisible: (String) -> Unit,
-    onClick: () -> Unit,
-) {
-    LaunchedEffect(file.path) {
-        if (file.path.isNotBlank()) onVisible(file.path)
-    }
-    SettingsItem(
-        headline = file.name,
-        supporting = apkFolder(file).ifBlank { null },
-        leading = { ApkIcon(icon) },
-        onClick = onClick,
-    )
 }
 
 @Composable
@@ -399,73 +377,53 @@ private fun AppGridCell(
     icon: ImageBitmap?,
     onVisible: (String) -> Unit,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
 ) {
     val view = LocalView.current
     LaunchedEffect(app.pkg) { onVisible(app.pkg) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
             .clickable {
                 view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
                 onClick()
             }
-            .padding(horizontal = 4.dp, vertical = 8.dp),
+            .padding(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ApkIcon(icon, size = 56.dp)
+        Box(
+            modifier = Modifier
+                .size(60.dp)
+                .shadow(3.dp, RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(14.dp))
+                .clickable {
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    onLongClick()
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            if (icon != null) {
+                Image(icon, null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            } else {
+                Icon(
+                    Icons.Outlined.Apps,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
         Spacer(Modifier.height(6.dp))
         Text(
             app.name.ifBlank { app.pkg },
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelSmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
-}
-
-@Composable
-private fun ApkIcon(icon: ImageBitmap?, size: androidx.compose.ui.unit.Dp = 40.dp) {
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (icon != null) {
-            Image(icon, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-        } else {
-            Icon(
-                Icons.Outlined.Apps,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(size * 0.45f),
-            )
-        }
-    }
-}
-
-private fun apkKey(file: TvFile): String {
-    return file.path.ifBlank { file.dir + "/" + file.name }
-}
-
-private fun apkFolder(file: TvFile): String {
-    val p = file.path.trim()
-    if (p.isNotEmpty()) {
-        val slash = p.lastIndexOf('/')
-        return if (slash > 0) p.substring(0, slash) else p
-    }
-    return file.dir
-}
-
-private fun formatSize(bytes: Long): String {
-    if (bytes < 1024) return "$bytes B"
-    val kb = bytes / 1024.0
-    if (kb < 1024) return String.format(Locale.US, "%.1f KB", kb)
-    val mb = kb / 1024.0
-    if (mb < 1024) return String.format(Locale.US, "%.1f MB", mb)
-    return String.format(Locale.US, "%.2f GB", mb / 1024.0)
 }
