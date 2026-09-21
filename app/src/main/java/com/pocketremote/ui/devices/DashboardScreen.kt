@@ -184,16 +184,16 @@ fun DashboardScreen(state: UiState, viewModel: PhoneViewModel) {
                     NeoSettingsItem(
                         "控制台色调",
                         leadingIcon = Icons.Outlined.Palette,
-                        supporting = if (useDynamic) "壁纸取色" else "自定义赛博色"
+                        supporting = if (useDynamic) "壁纸取色" else "质感色彩"
                     )
                     
                     val presets = listOf(
-                        "赛博蓝" to Color(0xFF00E5FF),
-                        "荧光绿" to Color(0xFF00FF44),
-                        "落日橙" to Color(0xFFFF5E00),
-                        "霓虹粉" to Color(0xFFFF00AA),
-                        "电音紫" to Color(0xFFAA00FF),
-                        "黄金" to Color(0xFFFFD700)
+                        "深海蓝" to Color(0xFF3B82F6), // Tailwind Blue 500
+                        "薄荷绿" to Color(0xFF10B981), // Tailwind Emerald 500
+                        "丁香紫" to Color(0xFF8B5CF6), // Tailwind Violet 500
+                        "珊瑚粉" to Color(0xFFF43F5E), // Tailwind Rose 500
+                        "落日橙" to Color(0xFFF97316), // Tailwind Orange 500
+                        "极客灰" to Color(0xFF64748B)  // Tailwind Slate 500
                     )
                     
                     FlowRow(
@@ -203,7 +203,7 @@ fun DashboardScreen(state: UiState, viewModel: PhoneViewModel) {
                     ) {
                         if (Build.VERSION.SDK_INT >= 31) {
                             PaletteSwatch(
-                                name = "壁纸",
+                                name = "跟随壁纸",
                                 color = Color(0xFF5F6368),
                                 isDynamic = true,
                                 selected = useDynamic,
@@ -222,36 +222,6 @@ fun DashboardScreen(state: UiState, viewModel: PhoneViewModel) {
                                 },
                             )
                         }
-                    }
-                    NeoGroupDivider()
-                    
-                    // Custom Color Slider
-                    var currentHue by androidx.compose.runtime.remember(seedColor, useDynamic) { 
-                        // approximate hue from color, or default to 0
-                        // Since we just want to set hue, we'll extract it manually or just default
-                        // Actually Compose Color doesn't expose HSV easily without converting.
-                        // We will just map a slider directly.
-                        val hsv = FloatArray(3)
-                        android.graphics.Color.colorToHSV(seedColor.toArgb(), hsv)
-                        androidx.compose.runtime.mutableStateOf(if (useDynamic) 180f else hsv[0])
-                    }
-                    
-                    Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                        Text("自定义色相", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Slider(
-                            value = currentHue,
-                            onValueChange = { 
-                                currentHue = it 
-                                val hsvColor = android.graphics.Color.HSVToColor(floatArrayOf(it, 1f, 1f))
-                                theme.setDynamic(false)
-                                theme.setSeedColor(Color(hsvColor))
-                            },
-                            valueRange = 0f..360f,
-                            colors = SliderDefaults.colors(
-                                thumbColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(currentHue, 1f, 1f))),
-                                activeTrackColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(currentHue, 1f, 1f)))
-                            )
-                        )
                     }
                 }
             }
