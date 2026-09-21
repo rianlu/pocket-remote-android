@@ -82,7 +82,7 @@ private fun ConnectedSession(state: UiState, viewModel: PhoneViewModel) {
         actions = {
             when (state.route) {
                 Route.Apps -> TextButton(onClick = { viewModel.loadApps() }) { Text("刷新") }
-                Route.Dashboard -> TextButton(onClick = { viewModel.refreshInfo() }) { Text("刷新") }
+
                 else -> Unit
             }
         },

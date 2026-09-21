@@ -11,7 +11,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -24,11 +23,9 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.content.ContextCompat
 import com.pocketremote.ui.PhoneApp
 import com.pocketremote.ui.PhoneViewModel
-import com.pocketremote.ui.theme.AppearanceMode
 import com.pocketremote.ui.theme.LocalThemeStore
 import com.pocketremote.ui.theme.PocketRemoteTheme
 
-/** 口袋遥控入口。 */
 class MainActivity : ComponentActivity() {
     private val viewModel: PhoneViewModel by viewModels()
     private val nearbyWifi = registerForActivityResult(
@@ -45,16 +42,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val store = (application as PocketRemoteApp).themeStore
         setContent {
-            val appearance by store.appearance.collectAsState()
-            val palette by store.palette.collectAsState()
-            val dark = when (appearance) {
-                AppearanceMode.System -> isSystemInDarkTheme()
-                AppearanceMode.Light -> false
-                AppearanceMode.Dark -> true
-            }
-            EdgeToEdge(dark)
+            val useDynamic by store.useDynamic.collectAsState()
+            val seedColor by store.seedColor.collectAsState()
+            
+            EdgeToEdgeDark()
             CompositionLocalProvider(LocalThemeStore provides store) {
-                PocketRemoteTheme(appearance = appearance, palette = palette) {
+                PocketRemoteTheme(useDynamic = useDynamic, seedColor = seedColor) {
                     Surface(modifier = Modifier.fillMaxSize()) {
                         PhoneApp(viewModel)
                     }
@@ -77,21 +70,13 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun EdgeToEdge(dark: Boolean) {
+private fun EdgeToEdgeDark() {
     val view = LocalView.current
     SideEffect {
         val activity = view.context as ComponentActivity
         activity.enableEdgeToEdge(
-            statusBarStyle = if (dark) {
-                SystemBarStyle.dark(Color.TRANSPARENT)
-            } else {
-                SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
-            },
-            navigationBarStyle = if (dark) {
-                SystemBarStyle.dark(Color.TRANSPARENT)
-            } else {
-                SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
-            },
+            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
     }
 }

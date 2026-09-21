@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -39,6 +40,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import com.pocketremote.ui.components.NeoButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -52,6 +55,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
@@ -71,11 +75,7 @@ import com.pocketremote.ui.components.NeoItemPanel
 import com.pocketremote.ui.components.NeoSectionLabel
 import com.pocketremote.ui.components.NeoSettingsGroup
 import com.pocketremote.ui.components.NeoSettingsItem
-import com.pocketremote.ui.theme.AppearanceMode
 import com.pocketremote.ui.theme.LocalThemeStore
-import com.pocketremote.ui.theme.PaletteKey
-import com.pocketremote.ui.theme.label
-import com.pocketremote.ui.theme.swatchColor
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -83,8 +83,8 @@ fun DashboardScreen(state: UiState, viewModel: PhoneViewModel) {
     val info = state.tvInfo
     val ctx = LocalContext.current
     val theme = LocalThemeStore.current
-    val appearance by theme.appearance.collectAsState()
-    val palette by theme.palette.collectAsState()
+    val useDynamic by theme.useDynamic.collectAsState()
+    val seedColor by theme.seedColor.collectAsState()
     val view = LocalView.current
     var confirmClean by rememberSaveable { mutableStateOf(false) }
 
@@ -178,6 +178,84 @@ fun DashboardScreen(state: UiState, viewModel: PhoneViewModel) {
                 }
             }
 
+            item(key = "look") {
+                NeoSectionLabel("外观设置")
+                NeoSettingsGroup(Modifier.fillMaxWidth()) {
+                    NeoSettingsItem(
+                        "控制台色调",
+                        leadingIcon = Icons.Outlined.Palette,
+                        supporting = if (useDynamic) "壁纸取色" else "自定义赛博色"
+                    )
+                    
+                    val presets = listOf(
+                        "赛博蓝" to Color(0xFF00E5FF),
+                        "荧光绿" to Color(0xFF00FF44),
+                        "落日橙" to Color(0xFFFF5E00),
+                        "霓虹粉" to Color(0xFFFF00AA),
+                        "电音紫" to Color(0xFFAA00FF),
+                        "黄金" to Color(0xFFFFD700)
+                    )
+                    
+                    FlowRow(
+                        Modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        if (Build.VERSION.SDK_INT >= 31) {
+                            PaletteSwatch(
+                                name = "壁纸",
+                                color = Color(0xFF5F6368),
+                                isDynamic = true,
+                                selected = useDynamic,
+                                onClick = { theme.setDynamic(true) },
+                            )
+                        }
+                        presets.forEach { (name, color) ->
+                            PaletteSwatch(
+                                name = name,
+                                color = color,
+                                isDynamic = false,
+                                selected = !useDynamic && seedColor == color,
+                                onClick = { 
+                                    theme.setDynamic(false)
+                                    theme.setSeedColor(color) 
+                                },
+                            )
+                        }
+                    }
+                    NeoGroupDivider()
+                    
+                    // Custom Color Slider
+                    var currentHue by androidx.compose.runtime.remember(seedColor, useDynamic) { 
+                        // approximate hue from color, or default to 0
+                        // Since we just want to set hue, we'll extract it manually or just default
+                        // Actually Compose Color doesn't expose HSV easily without converting.
+                        // We will just map a slider directly.
+                        val hsv = FloatArray(3)
+                        android.graphics.Color.colorToHSV(seedColor.toArgb(), hsv)
+                        androidx.compose.runtime.mutableStateOf(if (useDynamic) 180f else hsv[0])
+                    }
+                    
+                    Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                        Text("自定义色相", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Slider(
+                            value = currentHue,
+                            onValueChange = { 
+                                currentHue = it 
+                                val hsvColor = android.graphics.Color.HSVToColor(floatArrayOf(it, 1f, 1f))
+                                theme.setDynamic(false)
+                                theme.setSeedColor(Color(hsvColor))
+                            },
+                            valueRange = 0f..360f,
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(currentHue, 1f, 1f))),
+                                activeTrackColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(currentHue, 1f, 1f)))
+                            )
+                        )
+                    }
+                }
+            }
+
             item(key = "maint") {
                 NeoSectionLabel("电视工具")
                 NeoItemPanel(
@@ -226,52 +304,27 @@ fun DashboardScreen(state: UiState, viewModel: PhoneViewModel) {
                         trailingText = if (info != null && info.width > 0) "${info.width} × ${info.height}" else "—"
                     )
                     NeoGroupDivider()
-                    NeoSettingsItem(
-                        "内部存储",
-                        trailingText = if (info != null && info.storageTotalMb > 0)
-                            "${info.storageFreeMb} / ${info.storageTotalMb} MB 可用" else "—"
-                    )
-                    NeoGroupDivider()
-                    NeoSettingsItem(
-                        "运行内存",
-                        trailingText = if (info != null && info.ramMb > 0)
-                            "${info.ramAvailMb} / ${info.ramMb} MB 可用" else "—"
-                    )
-                }
-            }
-
-            item(key = "look") {
-                NeoSectionLabel("外观设置")
-                NeoSettingsGroup(Modifier.fillMaxWidth()) {
-
-                    NeoSettingsItem(
-                        "主题色",
-                        leadingIcon = Icons.Outlined.Palette,
-                        supporting = palette.label()
-                    )
-                    FlowRow(
-                        Modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        val keys = buildList {
-                            if (Build.VERSION.SDK_INT >= 31) add(PaletteKey.Dynamic)
-                            add(PaletteKey.Blue)
-                            add(PaletteKey.Green)
-                            add(PaletteKey.Orange)
-                            add(PaletteKey.Purple)
-                            add(PaletteKey.Teal)
-                        }
-                        keys.forEach { key ->
-                            PaletteSwatch(
-                                key = key,
-                                selected = palette == key,
-                                onClick = { theme.setPalette(key) },
-                            )
-                        }
+                    if (info != null && info.storageTotalMb > 0) {
+                        NeoGroupDivider()
+                        UsageBar(title = "内部存储", availMb = info.storageFreeMb, totalMb = info.storageTotalMb)
+                    }
+                    if (info != null && info.ramMb > 0) {
+                        NeoGroupDivider()
+                        UsageBar(title = "运行内存", availMb = info.ramAvailMb, totalMb = info.ramMb)
                     }
                 }
             }
+
+            item(key = "about") {
+                NeoSectionLabel("关于")
+                NeoSettingsGroup(Modifier.fillMaxWidth()) {
+                    NeoSettingsItem("版本号", trailingText = "1.0.0")
+                    NeoGroupDivider()
+                    NeoSettingsItem("联系开发者", trailingText = "Pocket TV Remote")
+                }
+            }
+
+
             item { Spacer(Modifier.height(16.dp)) }
         }
     }
@@ -296,7 +349,9 @@ fun DashboardScreen(state: UiState, viewModel: PhoneViewModel) {
 
 @Composable
 private fun PaletteSwatch(
-    key: PaletteKey,
+    name: String,
+    color: Color,
+    isDynamic: Boolean,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -308,12 +363,12 @@ private fun PaletteSwatch(
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
-                .background(key.swatchColor())
+                .background(color)
                 .border(if (selected) 3.dp else 1.dp, borderColor, CircleShape)
                 .semantics {
                     role = Role.RadioButton
                     this.selected = selected
-                    contentDescription = key.label()
+                    contentDescription = name
                 }
                 .clickable {
                     view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
@@ -321,7 +376,7 @@ private fun PaletteSwatch(
                 },
             contentAlignment = Alignment.Center,
         ) {
-            if (key == PaletteKey.Dynamic) {
+            if (isDynamic) {
                 Icon(
                     Icons.Outlined.Palette,
                     contentDescription = null,
@@ -331,7 +386,7 @@ private fun PaletteSwatch(
             }
         }
         Text(
-            key.label(),
+            name,
             style = MaterialTheme.typography.labelSmall,
             color = if (selected) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -346,4 +401,41 @@ internal fun address(state: UiState, info: TvInfo?): String {
     val shown = ip.ifBlank { host }
     val port = state.selected?.port ?: Constants.CONTROL_PORT
     return if (shown.isBlank()) "—" else "$shown:$port"
+}
+
+@Composable
+private fun UsageBar(title: String, availMb: Long, totalMb: Long) {
+    if (totalMb <= 0) return
+    val usedMb = totalMb - availMb
+    val percent = (usedMb.toFloat() / totalMb.toFloat()).coerceIn(0f, 1f)
+    
+    val formatGb = { mb: Long -> if (mb >= 1024) String.format("%.1f GB", mb / 1024f) else "$mb MB" }
+    val usedStr = formatGb(usedMb)
+    val totalStr = formatGb(totalMb)
+
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(title, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+            Text("$usedStr / $totalStr", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Spacer(Modifier.height(10.dp))
+        // Neumorphic track
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest, CircleShape)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), CircleShape)
+                .clip(CircleShape)
+        ) {
+            // Fill
+            val color = if (percent > 0.85f) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(percent)
+                    .background(color)
+            )
+        }
+    }
 }

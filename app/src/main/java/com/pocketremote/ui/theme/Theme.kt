@@ -1,13 +1,11 @@
 package com.pocketremote.ui.theme
 
 import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
@@ -28,66 +26,29 @@ private val MdShapes = Shapes(
     extraLarge = RoundedCornerShape(28.dp),
 )
 
-fun PaletteKey.swatchColor(): Color {
-    return when (this) {
-        PaletteKey.Dynamic -> Color(0xFF5F6368)
-        PaletteKey.Blue -> Color(0xFF1A73E8)
-        PaletteKey.Green -> Color(0xFF188038)
-        PaletteKey.Orange -> Color(0xFFE8710A)
-        PaletteKey.Purple -> Color(0xFF6750A4)
-        PaletteKey.Teal -> Color(0xFF00897B)
-    }
-}
-
-private fun PaletteKey.seedColor(): Color {
-    return if (this == PaletteKey.Dynamic) PaletteKey.Blue.swatchColor() else swatchColor()
-}
-
-private fun seedScheme(key: PaletteKey, dark: Boolean): ColorScheme {
-    return dynamicColorScheme(
-        seedColor = key.seedColor(),
-        isDark = dark,
-        isAmoled = false,
-        style = PaletteStyle.TonalSpot,
-    )
-}
-
-/** Material 3：跟随系统深浅色、壁纸动态色、或自选种子色。 */
+/** 全局深色模式：支持 Android 12+ 壁纸取色或任意自定义主题色 */
 @Composable
 fun PocketRemoteTheme(
-    appearance: AppearanceMode,
-    palette: PaletteKey,
+    useDynamic: Boolean,
+    seedColor: Color,
     content: @Composable () -> Unit,
 ) {
-    val useDarkTheme = true // 强制全局深色模式
     val context = LocalContext.current
-    val colorScheme = if (palette == PaletteKey.Dynamic && Build.VERSION.SDK_INT >= 31) {
-        if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    
+    val colorScheme = if (useDynamic && Build.VERSION.SDK_INT >= 31) {
+        dynamicDarkColorScheme(context)
     } else {
-        seedScheme(if (palette == PaletteKey.Dynamic) PaletteKey.Blue else palette, useDarkTheme)
+        dynamicColorScheme(
+            seedColor = seedColor,
+            isDark = true,
+            isAmoled = false,
+            style = PaletteStyle.TonalSpot,
+        )
     }
+    
     MaterialTheme(
         colorScheme = colorScheme,
         shapes = MdShapes,
         content = content,
     )
-}
-
-fun PaletteKey.label(): String {
-    return when (this) {
-        PaletteKey.Dynamic -> "壁纸取色"
-        PaletteKey.Blue -> "蓝"
-        PaletteKey.Green -> "绿"
-        PaletteKey.Orange -> "橙"
-        PaletteKey.Purple -> "紫"
-        PaletteKey.Teal -> "青"
-    }
-}
-
-fun AppearanceMode.label(): String {
-    return when (this) {
-        AppearanceMode.System -> "跟随系统"
-        AppearanceMode.Light -> "浅色"
-        AppearanceMode.Dark -> "深色"
-    }
 }
