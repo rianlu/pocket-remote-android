@@ -52,3 +52,9 @@ fun PocketRemoteTheme(
         content = content,
     )
 }
+
+fun android.view.View.vibrate(constant: Int) {
+    if (ThemeStore.instance?.hapticEnabled?.value != false) {
+        performHapticFeedback(constant)
+    }
+}

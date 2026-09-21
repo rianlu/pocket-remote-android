@@ -1,4 +1,5 @@
 package com.pocketremote.ui.apps
+import com.pocketremote.ui.theme.vibrate
 
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -356,7 +357,7 @@ private fun FilterChip(selected: Boolean, label: String, onClick: () -> Unit) {
                 RoundedCornerShape(16.dp)
             )
             .clickable {
-                view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                view.vibrate(HapticFeedbackConstants.CONTEXT_CLICK)
                 onClick()
             }
             .padding(horizontal = 12.dp),
@@ -386,7 +387,7 @@ private fun AppGridCell(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                view.vibrate(HapticFeedbackConstants.CONTEXT_CLICK)
                 onClick()
             }
             .padding(4.dp),
@@ -399,7 +400,7 @@ private fun AppGridCell(
                 .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(14.dp))
                 .clip(RoundedCornerShape(14.dp))
                 .clickable {
-                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    view.vibrate(HapticFeedbackConstants.LONG_PRESS)
                     onLongClick()
                 },
             contentAlignment = Alignment.Center

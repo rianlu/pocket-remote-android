@@ -1,4 +1,5 @@
 package com.pocketremote.ui.components
+import com.pocketremote.ui.theme.vibrate
 
 import androidx.compose.runtime.CompositionLocalProvider
 import com.pocketremote.ui.theme.rememberReducedMotion
@@ -102,7 +103,7 @@ fun NeoButton(
                     interactionSource = interactionSource,
                     indication = null,
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.vibrate(HapticFeedbackConstants.KEYBOARD_TAP)
                         onClick()
                     }
                 ) else Modifier
@@ -194,7 +195,7 @@ fun NeoSettingsItem(
     val view = LocalView.current
     val clickMod = if (onClick != null) {
         Modifier.clickable {
-            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            view.vibrate(HapticFeedbackConstants.KEYBOARD_TAP)
             onClick()
         }
     } else Modifier
@@ -281,7 +282,7 @@ fun NeoItemPanel(
     val surface = MaterialTheme.colorScheme.surfaceContainerLow
     val outline = MaterialTheme.colorScheme.outlineVariant
     val clickMod = if (onClick != null) Modifier.clickable {
-        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        view.vibrate(HapticFeedbackConstants.KEYBOARD_TAP)
         onClick()
     } else Modifier
 

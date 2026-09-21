@@ -1,4 +1,5 @@
 package com.pocketremote.ui.devices
+import com.pocketremote.ui.theme.vibrate
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Colorize
+import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.PowerSettingsNew
 import androidx.compose.material.icons.outlined.Refresh
@@ -42,6 +44,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import com.pocketremote.ui.components.NeoButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.Switch
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -90,6 +93,7 @@ fun DashboardScreen(state: UiState, viewModel: PhoneViewModel) {
     val theme = LocalThemeStore.current
     val useDynamic by theme.useDynamic.collectAsState()
     val seedColor by theme.seedColor.collectAsState()
+    val hapticEnabled by theme.hapticEnabled.collectAsState()
     val view = LocalView.current
     var confirmClean by rememberSaveable { mutableStateOf(false) }
     var showColorPicker by rememberSaveable { mutableStateOf(false) }
@@ -245,6 +249,25 @@ fun DashboardScreen(state: UiState, viewModel: PhoneViewModel) {
                 }
             }
 
+
+            item(key = "prefs") {
+                NeoSectionLabel("操作体验")
+                NeoSettingsGroup(Modifier.fillMaxWidth()) {
+                    NeoSettingsItem(
+                        "触感反馈",
+                        leadingIcon = androidx.compose.material.icons.Icons.Outlined.Vibration,
+                        supporting = "按键、手势及部分交互操作时的振动",
+                        trailing = {
+                            Switch(
+                                checked = hapticEnabled,
+                                onCheckedChange = { theme.setHapticEnabled(it) }
+                            )
+                        },
+                        onClick = { theme.setHapticEnabled(!hapticEnabled) }
+                    )
+                }
+            }
+
             item(key = "maint") {
                 NeoSectionLabel("电视工具")
                 NeoItemPanel(
@@ -374,7 +397,7 @@ private fun PaletteSwatch(
                     contentDescription = name
                 }
                 .clickable {
-                    view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                    view.vibrate(HapticFeedbackConstants.CONTEXT_CLICK)
                     onClick()
                 },
             contentAlignment = Alignment.Center,

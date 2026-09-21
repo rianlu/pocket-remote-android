@@ -1,4 +1,5 @@
 package com.pocketremote.ui.devices
+import com.pocketremote.ui.theme.vibrate
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -82,7 +83,7 @@ fun DevicesScreen(state: UiState, viewModel: PhoneViewModel) {
                 )
             } else {
                 IconButton(onClick = {
-                    view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                    view.vibrate(HapticFeedbackConstants.CONTEXT_CLICK)
                     viewModel.scan()
                 }) {
                     Icon(Icons.Outlined.Refresh, contentDescription = "搜索", tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -270,7 +271,7 @@ private fun ModeButton(
 
     NeoButton(
         onClick = {
-            view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+            view.vibrate(HapticFeedbackConstants.CONTEXT_CLICK)
             onClick()
         },
         modifier = modifier.height(64.dp),

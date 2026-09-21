@@ -1,4 +1,5 @@
 package com.pocketremote.ui.remote
+import com.pocketremote.ui.theme.vibrate
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedContent
@@ -112,7 +113,7 @@ fun RemoteScreen(state: UiState, viewModel: PhoneViewModel) {
             ) {
                 NeoButton(
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                        view.vibrate(HapticFeedbackConstants.CONTEXT_CLICK)
                         padMode = PadMode.Keys.name
                     },
                     modifier = Modifier.weight(1f),
@@ -127,7 +128,7 @@ fun RemoteScreen(state: UiState, viewModel: PhoneViewModel) {
                 }
                 NeoButton(
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                        view.vibrate(HapticFeedbackConstants.CONTEXT_CLICK)
                         if (mouseOk) padMode = PadMode.Mouse.name
                         else viewModel.note("当前模式不支持鼠标")
                     },

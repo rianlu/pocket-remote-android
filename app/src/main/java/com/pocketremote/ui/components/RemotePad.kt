@@ -1,4 +1,5 @@
 package com.pocketremote.ui.components
+import com.pocketremote.ui.theme.vibrate
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.animateFloatAsState
@@ -175,7 +176,7 @@ fun HorizontalVolumeRocker(onKey: (Int) -> Unit) {
                 .fillMaxSize()
                 .clip(RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp))
                 .clickable {
-                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    view.vibrate(HapticFeedbackConstants.KEYBOARD_TAP)
                     onKey(Constants.KEY_VOL_DOWN)
                 },
             contentAlignment = Alignment.Center
@@ -199,7 +200,7 @@ fun HorizontalVolumeRocker(onKey: (Int) -> Unit) {
                 .fillMaxSize()
                 .clip(RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp))
                 .clickable {
-                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    view.vibrate(HapticFeedbackConstants.KEYBOARD_TAP)
                     onKey(Constants.KEY_VOL_UP)
                 },
             contentAlignment = Alignment.Center
@@ -237,7 +238,7 @@ private fun ClickPad(size: Dp, onKey: (Int) -> Unit) {
                     val startRegion = hitPadRegion(down.position.x, down.position.y, padPx)
                     if (startRegion != PadRegion.None) {
                         held = startRegion
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.vibrate(HapticFeedbackConstants.KEYBOARD_TAP)
                         firePad(startRegion, onKey)
                     }
                     do {
@@ -247,7 +248,7 @@ private fun ClickPad(size: Dp, onKey: (Int) -> Unit) {
                         if (currRegion != held && startRegion != PadRegion.Ok) {
                             held = currRegion
                             if (currRegion != PadRegion.None) {
-                                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                view.vibrate(HapticFeedbackConstants.CLOCK_TICK)
                                 firePad(currRegion, onKey)
                             }
                         }

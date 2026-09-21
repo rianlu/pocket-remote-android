@@ -1,4 +1,5 @@
 package com.pocketremote.ui.remote
+import com.pocketremote.ui.theme.vibrate
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.Animatable
@@ -92,7 +93,7 @@ fun MouseTrackpad(
                             val change = event.changes.firstOrNull() ?: break
                             if (!change.pressed) {
                                 if (!moved) {
-                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    view.vibrate(HapticFeedbackConstants.KEYBOARD_TAP)
                                     onClick()
                                 }
                                 break

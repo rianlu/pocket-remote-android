@@ -1,4 +1,5 @@
 package com.pocketremote.ui.components
+import com.pocketremote.ui.theme.vibrate
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -198,7 +199,7 @@ fun ConnectedShell(
                     selected = state.route == Route.Remote,
                     modifier = Modifier.weight(1f),
                 ) {
-                    view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                    view.vibrate(HapticFeedbackConstants.CONTEXT_CLICK)
                     viewModel.go(Route.Remote)
                 }
                 PillDockItem(
@@ -207,7 +208,7 @@ fun ConnectedShell(
                     selected = state.route == Route.Apps,
                     modifier = Modifier.weight(1f),
                 ) {
-                    view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                    view.vibrate(HapticFeedbackConstants.CONTEXT_CLICK)
                     viewModel.go(Route.Apps)
                 }
                 PillDockItem(
@@ -216,7 +217,7 @@ fun ConnectedShell(
                     selected = state.route == Route.Dashboard,
                     modifier = Modifier.weight(1f),
                 ) {
-                    view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                    view.vibrate(HapticFeedbackConstants.CONTEXT_CLICK)
                     viewModel.go(Route.Dashboard)
                 }
             }
