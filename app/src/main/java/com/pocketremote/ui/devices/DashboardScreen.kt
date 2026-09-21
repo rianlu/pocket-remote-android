@@ -29,6 +29,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Colorize
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.PowerSettingsNew
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.AlertDialog
@@ -40,6 +42,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import com.pocketremote.ui.components.NeoButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.TextButton
@@ -55,6 +58,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.materialkolor.dynamicColorScheme
+import com.materialkolor.PaletteStyle
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -87,6 +92,7 @@ fun DashboardScreen(state: UiState, viewModel: PhoneViewModel) {
     val seedColor by theme.seedColor.collectAsState()
     val view = LocalView.current
     var confirmClean by rememberSaveable { mutableStateOf(false) }
+    var showColorPicker by rememberSaveable { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize()) {
         LazyColumn(
@@ -107,12 +113,12 @@ fun DashboardScreen(state: UiState, viewModel: PhoneViewModel) {
                             Box(
                                 modifier = Modifier
                                     .size(8.dp)
-                                    .background(MaterialTheme.colorScheme.tertiary, CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary, CircleShape)
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 "已连接",
-                                color = MaterialTheme.colorScheme.tertiary,
+                                color = MaterialTheme.colorScheme.primary,
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -190,8 +196,6 @@ fun DashboardScreen(state: UiState, viewModel: PhoneViewModel) {
                     val presets = listOf(
                         "深海蓝" to Color(0xFF3B82F6), // Tailwind Blue 500
                         "薄荷绿" to Color(0xFF10B981), // Tailwind Emerald 500
-                        "丁香紫" to Color(0xFF8B5CF6), // Tailwind Violet 500
-                        "珊瑚粉" to Color(0xFFF43F5E), // Tailwind Rose 500
                         "落日橙" to Color(0xFFF97316), // Tailwind Orange 500
                         "极客灰" to Color(0xFF64748B)  // Tailwind Slate 500
                     )
@@ -211,17 +215,32 @@ fun DashboardScreen(state: UiState, viewModel: PhoneViewModel) {
                             )
                         }
                         presets.forEach { (name, color) ->
+                            val isThisSelected = !useDynamic && seedColor == color
                             PaletteSwatch(
                                 name = name,
-                                color = color,
+                                color = if (isThisSelected) MaterialTheme.colorScheme.primary else color,
                                 isDynamic = false,
-                                selected = !useDynamic && seedColor == color,
+                                selected = isThisSelected,
                                 onClick = { 
                                     theme.setDynamic(false)
                                     theme.setSeedColor(color) 
                                 },
                             )
                         }
+                        
+                        // Custom Color Button
+                        val isCustomSelected = !useDynamic && presets.none { it.second == seedColor }
+                        PaletteSwatch(
+                            name = "自定义",
+                            color = if (isCustomSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            brush = if (!isCustomSelected) Brush.sweepGradient(
+                                listOf(Color.Red, Color.Yellow, Color.Green, Color.Cyan, Color.Blue, Color.Magenta, Color.Red)
+                            ) else null,
+                            isDynamic = false,
+                            selected = isCustomSelected,
+                            customIcon = Icons.Outlined.Colorize,
+                            onClick = { showColorPicker = true }
+                        )
                     }
                 }
             }
@@ -235,8 +254,8 @@ fun DashboardScreen(state: UiState, viewModel: PhoneViewModel) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         NeoIconBadge(
                             icon = Icons.Outlined.CleaningServices,
-                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                            background = MaterialTheme.colorScheme.tertiaryContainer,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            background = MaterialTheme.colorScheme.primaryContainer,
                         )
                         Spacer(Modifier.width(14.dp))
                         Column(modifier = Modifier.weight(1f)) {
@@ -299,6 +318,18 @@ fun DashboardScreen(state: UiState, viewModel: PhoneViewModel) {
         }
     }
 
+    if (showColorPicker) {
+        CustomColorDialog(
+            initialColor = seedColor,
+            onDismiss = { showColorPicker = false },
+            onConfirm = { color -> 
+                showColorPicker = false
+                theme.setDynamic(false)
+                theme.setSeedColor(color)
+            }
+        )
+    }
+
     if (confirmClean) {
         AlertDialog(
             onDismissRequest = { confirmClean = false },
@@ -323,6 +354,8 @@ private fun PaletteSwatch(
     color: Color,
     isDynamic: Boolean,
     selected: Boolean,
+    brush: Brush? = null,
+    customIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
     onClick: () -> Unit,
 ) {
     val view = LocalView.current
@@ -333,7 +366,7 @@ private fun PaletteSwatch(
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
-                .background(color)
+                then(if (brush != null) Modifier.background(brush) else Modifier.background(color))
                 .border(if (selected) 3.dp else 1.dp, borderColor, CircleShape)
                 .semantics {
                     role = Role.RadioButton
@@ -349,6 +382,13 @@ private fun PaletteSwatch(
             if (isDynamic) {
                 Icon(
                     Icons.Outlined.Palette,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp),
+                )
+            } else if (customIcon != null) {
+                Icon(
+                    customIcon,
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(22.dp),
@@ -408,4 +448,103 @@ private fun UsageBar(title: String, availMb: Long, totalMb: Long) {
             )
         }
     }
+}
+
+@Composable
+private fun CustomColorDialog(
+    initialColor: Color,
+    onDismiss: () -> Unit,
+    onConfirm: (Color) -> Unit
+) {
+    val hsv = FloatArray(3)
+    android.graphics.Color.colorToHSV(initialColor.toArgb(), hsv)
+    var hue by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(hsv[0]) }
+
+    val seedColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 1f, 1f)))
+    
+    val previewScheme = androidx.compose.runtime.remember(seedColor) {
+        dynamicColorScheme(
+            seedColor = seedColor,
+            isDark = true,
+            isAmoled = false,
+            style = PaletteStyle.TonalSpot
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("调色盘") },
+        text = {
+            Column {
+                // Real Theme Preview
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(80.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(previewScheme.surfaceContainerHighest)
+                        .border(1.dp, previewScheme.outlineVariant, RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(previewScheme.primaryContainer)
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Icon(Icons.Outlined.Palette, contentDescription = null, tint = previewScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
+                        Text("实际界面效果", color = previewScheme.onPrimaryContainer, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Spacer(Modifier.height(24.dp))
+                
+                Text("滑动选择主题色调", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(8.dp))
+                
+                // Rainbow track slider
+                Box(contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                            .height(16.dp)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color.Red,
+                                        Color.Yellow,
+                                        Color.Green,
+                                        Color.Cyan,
+                                        Color.Blue,
+                                        Color.Magenta,
+                                        Color.Red
+                                    )
+                                )
+                            )
+                    )
+                    androidx.compose.material3.Slider(
+                        value = hue,
+                        onValueChange = { hue = it },
+                        valueRange = 0f..360f,
+                        colors = androidx.compose.material3.SliderDefaults.colors(
+                            thumbColor = Color.White,
+                            activeTrackColor = Color.Transparent,
+                            inactiveTrackColor = Color.Transparent
+                        )
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(seedColor) },
+            ) { Text("确定") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        }
+    )
 }
